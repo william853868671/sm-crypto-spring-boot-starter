@@ -62,8 +62,10 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <!-- Hutool 5.8.x：SM2 的 encryptBcd / decryptStrFromBcd 已按 C1C3C2 实现，与前端 sm-crypto 互通 -->
         <hutool.version>5.8.33</hutool.version>
-        <!-- Hutool 的 SM2 底层依赖 BouncyCastle，必须显式声明 -->
-        <bouncycastle.version>1.80.2</bouncycastle.version>
+        <!-- Hutool 的 SM2 底层依赖 BouncyCastle，必须显式声明。
+             1.85 修复 GHSA-9pwp-9qqc-pr26 (CVE-2026-8763, Name Constraints 绕过, 9.1)、
+             GHSA-qp49-qgx5-5m26 (ASN.1 嵌套, 7.5)、GHSA-c3fc-8qff-9hwx (LDAP 注入, 5.5) -->
+        <bouncycastle.version>1.85</bouncycastle.version>
     </properties>
 
     <dependencies>
