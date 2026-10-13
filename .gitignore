@@ -1,0 +1,29 @@
+# Maven / 构建产物
+target/
+build/
+
+# 密钥文件：私钥绝对不能提交（泄露 = 全部返回数据可被解开）
+keys/
+*.pem
+sm2-private-key.txt
+sm2-public-key.txt
+smcfb.yml.snippet
+smcfb-frontend.txt
+
+# 本地助手工作区（记忆/日志，不进仓库）
+.workbuddy/
+
+# 依赖/工具缓存
+.tooling/
+node_modules/
+*.zip
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# 系统
+.DS_Store

@@ -1,0 +1,32 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: sm-crypto-sample
+
+smcfb:
+  # ------------------------------------------------------------------
+  # 返回体加密开关。
+  # 演示默认关闭（enabled: false），这样应用无需任何密钥即可直接启动、返回明文，
+  # 方便你先跑通接口、对比加密前后的差异。
+  #
+  # 想开启加密，按下面两步：
+  #   1) 在仓库根目录生成密钥对：
+  #      ./build.sh keys          # 写入 ./keys（sm2-public-key.txt / sm2-private-key.txt）
+  #      # 或：java -cp target/classes:<deps> \
+  #      #        com.github.william853868671.smcrypto.tool.GenKeyPairTool --out ./keys
+  #   2) 把 keys/sm2-public-key.txt 内容填到下面的 client-public-key，并把 enabled 改为 true
+  # ------------------------------------------------------------------
+  enabled: false
+
+  # 前端（小程序）的 SM2 公钥，130 位 hex，必须以 04 开头
+  # 注意：这是【前端】的公钥。后端用它加密 SM4 密钥，前端用配对私钥解密。
+  client-public-key: ""
+
+  # 公钥格式非法时是否直接拒绝启动（推荐 true，避免带病上线）
+  fail-fast: true
+
+logging:
+  level:
+    com.github.william853868671.smcrypto: debug
