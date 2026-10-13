@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- 基本信息 -->
+    <groupId>io.github.william853868671</groupId>
+    <artifactId>sm-crypto-spring-boot-starter-boot2</artifactId>
+    <version>2.0.0</version>
+    <packaging>jar</packaging>
+
+    <name>SM Crypto Spring Boot Starter (Boot 2.7 / Java 8)</name>
+    <description>
+        前后端国密（SM2 + SM4）返回体加密 Spring Boot Starter 的 Spring Boot 2.7 / Java 8 兼容版。
+        功能与 sm-crypto-spring-boot-starter（Spring Boot 3.x / Java 17）完全一致，
+        仅依赖与字节码目标不同：基于 spring-boot-dependencies 2.7.x，编译目标 Java 8。
+    </description>
+    <url>https://github.com/william853868671/sm-crypto-spring-boot-starter</url>
+
+    <licenses>
+        <license>
+            <name>The Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>william</id>
+            <name>William</name>
+            <email>william853868671@gmail.com</email>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/william853868671/sm-crypto-spring-boot-starter.git</connection>
+        <developerConnection>scm:git:ssh://github.com:william853868671/sm-crypto-spring-boot-starter.git</developerConnection>
+        <url>https://github.com/william853868671/sm-crypto-spring-boot-starter</url>
+    </scm>
+
+    <!--
+        说明：这是一个 Spring Boot Starter 库，不继承 spring-boot-starter-parent，
+        改为通过 dependencyManagement 引入 spring-boot-dependencies BOM，避免把库的
+        Spring Boot 版本强塞给使用方（使用方可以自由选择兼容的 Spring Boot 版本）。
+
+        本模块面向 Spring Boot 2.7.x（Spring Framework 5.3.x）+ Java 8，
+        与 Spring Boot 3.x / Java 17 的主线 starter 并行维护。
+    -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>2.7.18</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <properties>
+        <!-- 编译目标：Java 8（release 8 会强制禁止使用 Java 9+ API，作为兼容护栏） -->
+        <java.version>8</java.version>
+        <maven.compiler.release>8</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <!-- Hutool 5.8.x：SM2 的 encryptBcd / decryptStrFromBcd 已按 C1C3C2 实现，与前端 sm-crypto 互通。
+             5.8.x 原生支持 Java 8。 -->
+        <hutool.version>5.8.33</hutool.version>
+        <!-- BouncyCastle：Hutool SM2 的底层实现。bcprov-jdk18on 要求 Java 8+，可直接沿用。
+             1.85 修复 GHSA-9pwp-9qqc-pr26 (CVE-2026-8763)、GHSA-qp49-qgx5-5m26、GHSA-c3fc-8qff-9hwx -->
+        <bouncycastle.version>1.85</bouncycastle.version>
+    </properties>
+
+    <dependencies>
+        <!-- Spring Boot 自动配置（starter 必需） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+
+        <!-- Web 支持：ResponseBodyAdvice / @RestControllerAdvice 基于 Servlet MVC -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- 配置元数据（smcfb.* 在 IDE 里自动提示），仅编译期需要 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- 国密工具（SM2 / SM4） -->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+            <version>${hutool.version}</version>
+        </dependency>
+
+        <!-- BouncyCastle：Hutool SM2 的底层实现 -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>${bouncycastle.version}</version>
+        </dependency>
+
+        <!-- 测试 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- 编译（不继承 parent，需显式指定 Java 版本；release 8 强制 Java 8 API 兼容） -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <release>8</release>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+            </plugin>
+
+            <!-- 运行测试（自测套件 + MockMvc 集成测试） -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+
+            <!-- 源码包 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Javadoc 包 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.10.1</version>
+                <configuration>
+                    <doclint>none</doclint>
+                    <failOnError>false</failOnError>
+                    <source>8</source>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- GPG 签名（发布到 Maven Central 必需） -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>3.2.7</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                        <configuration>
+                            <gpgArguments>
+                                <arg>--batch</arg>
+                                <arg>--yes</arg>
+                                <arg>--pinentry-mode=loopback</arg>
+                            </gpgArguments>
+                            <passphraseServerId>gpg-signing</passphraseServerId>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- 发布到 Maven Central（Central Portal） -->
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.11.0</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <publishingServerId>central</publishingServerId>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!-- GitHub Packages 作为备选分发渠道 -->
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHubPackages</name>
+            <url>https://maven.pkg.github.com/william853868671/sm-crypto-spring-boot-starter</url>
+        </repository>
+    </distributionManagement>
+</project>
