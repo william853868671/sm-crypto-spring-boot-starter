@@ -21,6 +21,17 @@ public class SmcfbProperties {
     private boolean enabled = true;
 
     /**
+     * 是否必须显式标注 {@code @SmCFBEncrypt} 才加密返回体。
+     *
+     * <p>对应配置 {@code smcfb.require-annotation}。默认 {@code false}：返回体<b>默认即加密</b>——
+     * 不加注解也加密，只有 {@code (false)} 才关掉。</p>
+     *
+     * <p>设为 {@code true} 时切换为「显式标注才加密」模式：只有标了注解（且值不为 {@code false}）的接口
+     * 才加密，没标的接口一律明文返回。适合「仅个别接口需要加密、绝大多数接口保持明文」的场景。</p>
+     */
+    private boolean requireAnnotation = false;
+
+    /**
      * 前端公钥（130 位 hex，04 开头）。
      *
      * <p>后端用它对每次响应随机生成的 SM4 密钥做 SM2 加密。前端持有配对私钥才能解开，
@@ -55,6 +66,14 @@ public class SmcfbProperties {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public boolean isRequireAnnotation() {
+        return requireAnnotation;
+    }
+
+    public void setRequireAnnotation(boolean requireAnnotation) {
+        this.requireAnnotation = requireAnnotation;
     }
 
     public String getClientPublicKey() {

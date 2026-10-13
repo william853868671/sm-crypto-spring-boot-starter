@@ -7,7 +7,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 控制接口「返回体是否加密」的注解（推荐注解，原名 {@link EncryptedResponse} 仍兼容）。
+ * 控制接口「返回体是否加密」的注解（本 starter 唯一加密开关注解）。
  *
  * <p><b>默认即加密</b>：本 starter 对 {@code @RestController} 的返回体默认全部加密，
  * 因此本注解最常用的写法是「显式关闭」某个接口 —— 即 {@code @SmCFBEncrypt(false)}。
@@ -39,7 +39,6 @@ import java.lang.annotation.Target;
  * </pre>
  *
  * @see SecureResponseAdvice
- * @see EncryptedResponse
  */
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)

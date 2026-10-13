@@ -9,8 +9,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
 /**
- * 默认对 {@code @RestController} 的返回体加密，除非接口显式标注 {@link SmCFBEncrypt}{@code (false)}
- * 或 {@link EncryptedResponse}{@code (false)}。
+ * 默认对 {@code @RestController} 的返回体加密，除非接口显式标注 {@link SmCFBEncrypt}{@code (false)}。
  *
  * <p>加密是默认行为（不加注解即加密），因此本 Advice 对绝大多数接口都生效；
  * 业务代码照常返回业务对象，加密对业务透明 —— 不用每个方法手写
@@ -27,42 +26,55 @@ public class SecureResponseAdvice implements ResponseBodyAdvice<Object> {
     public static final String HEADER_ENCRYPTED = "X-SmCFBEncrypt";
 
     private final SecureResponseService secureResponseService;
+    private final SmcfbProperties properties;
 
-    public SecureResponseAdvice(SecureResponseService secureResponseService) {
+    public SecureResponseAdvice(SecureResponseService secureResponseService, SmcfbProperties properties) {
         this.secureResponseService = secureResponseService;
+        this.properties = properties;
     }
 
     @Override
     public boolean supports(MethodParameter returnType, Class converterType) {
-        // 默认加密：不加注解、或注解值为 true（默认值）都走加密；
-        // 只有显式标了 value=false 的接口才跳过。方法级注解优先于类级注解。
-        return !isEncryptDisabled(returnType);
+        // 显式关闭（value=false）永远不加密
+        if (isEncryptDisabled(returnType)) {
+            return false;
+        }
+        // require-annotation=true：只有显式标注了 @SmCFBEncrypt 才加密
+        if (properties.isRequireAnnotation()) {
+            return hasAnyEncryptAnnotation(returnType);
+        }
+        // 默认（require-annotation=false）：返回体默认即加密，不加注解也加密
+        return true;
+    }
+
+    /**
+     * 是否存在 {@link SmCFBEncrypt} 注解（方法级或类级）。
+     * 仅用于 require-annotation 模式：据此判断该接口是否「被显式要求加密」。
+     */
+    private boolean hasAnyEncryptAnnotation(MethodParameter returnType) {
+        if (returnType.hasMethodAnnotation(SmCFBEncrypt.class)) {
+            return true;
+        }
+        Class<?> declaring = returnType.getContainingClass();
+        return declaring != null && declaring.isAnnotationPresent(SmCFBEncrypt.class);
     }
 
     /**
      * 判断某个接口是否被显式关闭加密。
      *
-     * <p>优先级：方法上的 {@link SmCFBEncrypt} / {@link EncryptedResponse} 优先于类上同款注解；
-     * 只要方法级出现了其中一个（无论 true/false），就以方法级为准；方法级没有时再看法级。</p>
+     * <p>优先级：方法上的 {@link SmCFBEncrypt} 优先于类上同款注解；
+     * 方法级出现了该注解（无论 true/false）就以方法级为准；方法级没有时再看法级。</p>
      */
     private boolean isEncryptDisabled(MethodParameter returnType) {
         SmCFBEncrypt methodSm = returnType.getMethodAnnotation(SmCFBEncrypt.class);
         if (methodSm != null) {
             return !methodSm.value();
         }
-        EncryptedResponse methodLegacy = returnType.getMethodAnnotation(EncryptedResponse.class);
-        if (methodLegacy != null) {
-            return !methodLegacy.value();
-        }
         Class<?> declaring = returnType.getContainingClass();
         if (declaring != null) {
             SmCFBEncrypt classSm = declaring.getAnnotation(SmCFBEncrypt.class);
             if (classSm != null) {
                 return !classSm.value();
-            }
-            EncryptedResponse classLegacy = declaring.getAnnotation(EncryptedResponse.class);
-            if (classLegacy != null) {
-                return !classLegacy.value();
             }
         }
         return false;

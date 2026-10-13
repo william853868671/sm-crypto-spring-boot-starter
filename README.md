@@ -35,7 +35,7 @@
 
 ## 二、特性
 
-- 基于 **Hutool 5.8 + BouncyCastle**，Spring Boot 3.x 自动装配；`@RestController` 返回体**默认即加密**，无需任何注解；个别接口需要明文时用 `@SmCFBEncrypt(false)`（或兼容的 `@EncryptedResponse(false)`）显式关闭。
+- 基于 **Hutool 5.8 + BouncyCastle**，Spring Boot 3.x 自动装配；`@RestController` 返回体**默认即加密**，无需任何注解；个别接口需要明文时用 `@SmCFBEncrypt(false)` 显式关闭。
 - 被加密的响应会附带响应头 **`X-SmCFBEncrypt: true`**，前端据此判断是否需要走解密流程（未加密时不带该头）。
 - 返回的密文格式与前端 `sm-crypto` **完全对齐**（SM2 去 `04` 前缀 = C1C3C2；SM4 用 CBC + 随机 IV），
   前端无需做任何格式转换。
@@ -54,14 +54,14 @@
 <dependency>
     <groupId>io.github.william853868671</groupId>
     <artifactId>sm-crypto-spring-boot-starter</artifactId>
-    <version>1.0.2</version>
+    <version>2.0.0</version>
 </dependency>
 ```
 
 **Gradle (Kotlin DSL)**
 
 ```kotlin
-implementation("io.github.william853868671:sm-crypto-spring-boot-starter:1.0.2")
+implementation("io.github.william853868671:sm-crypto-spring-boot-starter:2.0.0")
 ```
 
 ### 2. 生成密钥对
@@ -92,11 +92,13 @@ smcfb:
   client-public-key: "04ff223d..."    # 前端 SM2 公钥（130 位 hex），用于加密响应
   server-private-key: "d4e5f6..."    # 后端 SM2 私钥（64 位 hex），用于解密请求
   request-decrypt-enabled: true       # 是否解密前端加密的请求体（默认 true）
+  require-annotation: false           # 是否必须显式标 @SmCFBEncrypt 才加密（默认 false）
   fail-fast: true                     # 密钥格式不对直接拒绝启动
 ```
 
 - `enabled: false` 时响应照常返回明文，方便联调对比。
 - `request-decrypt-enabled: false` 时后端不再解密请求（响应加密仍按 `enabled` 进行），前端可发明文请求。
+- `require-annotation: true` 时切换为「显式标注才加密」模式：只有标了 `@SmCFBEncrypt`（且值不为 `false`）的接口才加密，没标的接口一律明文。默认 `false`（返回体默认即加密）。
 - 只配 `client-public-key` 也能启动：未配 `server-private-key` 时响应加密照常；只有当前端真的发来 `X-SmCFBEncrypt: true` 的请求时才会运行期报错提示补配私钥。
 
 ### 4. 返回体加密（默认即加密）
@@ -123,19 +125,25 @@ public class OrderController {
 
 加密规则：
 
-- **不加注解 / `@SmCFBEncrypt(true)`（默认）/ `@EncryptedResponse(true)`** → 都按加密返回，响应头带 `X-SmCFBEncrypt: true`。
-- **`@SmCFBEncrypt(false)` / `@EncryptedResponse(false)`** → 不加密，按 Spring 默认方式原样序列化返回。
+- **不加注解 / `@SmCFBEncrypt(true)`（默认）** → 都按加密返回，响应头带 `X-SmCFBEncrypt: true`。
+- **`@SmCFBEncrypt(false)`** → 不加密，按 Spring 默认方式原样序列化返回。
 
 优先级与位置：
 
 - 注解可标在**方法**或 **Controller 类**上（标在类上则类内所有接口沿用该值）。
 - **方法级注解优先于类级**：类上标了 `@SmCFBEncrypt(false)`、某方法又标 `@SmCFBEncrypt(true)`，以方法级为准。
 
+两种模式（`smcfb.require-annotation`）：
+
+- **`false`（默认）— 默认即加密**：不加注解也加密；`@SmCFBEncrypt(false)` 才关掉。适合「绝大多数接口都要加密」。
+- **`true` — 显式标注才加密**：只有标了 `@SmCFBEncrypt` 的接口才加密，没标的接口一律明文。适合「仅个别接口需要加密」。
+  此模式下 `@SmCFBEncrypt` 注解的主要用途变成「开启」而非「关闭」。
+
 其它说明：
 
-- 历史注解 `@EncryptedResponse` **仍然兼容**，行为完全一致，可混用；新代码推荐用 `@SmCFBEncrypt`。
 - `enabled: false`（见上节配置）时整套加密不生效，所有接口都明文返回，注解被忽略，方便联调对比。
 - 加密后响应头会带 `X-SmCFBEncrypt: true`，前端可据此分支解密。
+- **2.0.0 起已移除历史别名 `@EncryptedResponse`**，统一使用 `@SmCFBEncrypt`（从 1.0.x 升级时把 `@EncryptedResponse` 改成 `@SmCFBEncrypt` 即可，行为完全一致）。
 
 不想要注解，也可以手动包：
 
@@ -300,7 +308,7 @@ mvn clean test
 ```
 
 自测覆盖：密钥格式、SM2/SM4 往返、长文本、密文格式、异常路径、返回体构造、Java(Hutool) ↔ JS(sm-crypto) 双向互通，
-以及 `@SmCFBEncrypt` / `@EncryptedResponse` 触发加密并写入 `X-SmCFBEncrypt: true` 响应头（未加密接口不带该头）、
+以及 `@SmCFBEncrypt` 触发加密并写入 `X-SmCFBEncrypt: true` 响应头（未加密接口不带该头）、
 请求头带 `X-SmCFBEncrypt: true` 时后端自动解密请求体并由 Controller 收到明文。
 
 ## 九、目录结构
@@ -313,7 +321,7 @@ sm-crypto-spring-boot-starter/
 │   ├── main/java/com/github/william853868671/smcrypto/
 │   │   ├── crypto/         SmCryptoUtil / Sm2KeyPair / SecureResponse（与 Spring 解耦）
 │   │   ├── spring/         SmcfbProperties / SecureResponseService /
-│   │   │                   SmCFBEncrypt / EncryptedResponse / SecureResponseAdvice /
+│   │   │                   SmCFBEncrypt / SecureResponseAdvice /
 │   │   │                   SmcfbDecryptAdvice（请求体解密）/ SmCryptoAutoConfiguration（自动配置）
 │   │   └── tool/           GenKeyPairTool（命令行生成前端对 + 后端对两套密钥）
 │   └── test/               SecurePayloadSelfTest / InteropPeerCheck / JUnit 包装

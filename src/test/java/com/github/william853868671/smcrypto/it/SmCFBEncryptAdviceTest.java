@@ -22,7 +22,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * 验证 {@link com.github.william853868671.smcrypto.spring.SmCFBEncrypt}
- * （及兼容注解 {@link com.github.william853868671.smcrypto.spring.EncryptedResponse}）
  * 触发返回体加密并写入响应头 {@code X-SmCFBEncrypt: true}；以及入站请求解密：
  * 前端用后端公钥加密请求体并带该头时，后端自动解密后再交给 Controller。
  */
@@ -66,16 +65,6 @@ class SmCFBEncryptAdviceTest {
         assertThat(node.get("code").asInt()).isEqualTo(200);
         assertThat(node.get("data").asText()).isNotEqualTo("{\"k\":\"v\"}");
         assertThat(node.get("key").asText()).isNotBlank();
-    }
-
-    @Test
-    void legacyEncryptedResponse_alsoSetsHeader() throws Exception {
-        MvcResult result = mockMvc.perform(get("/t/legacy"))
-                .andExpect(status().isOk())
-                .andReturn();
-
-        assertThat(result.getResponse().getHeader(SecureResponseAdvice.HEADER_ENCRYPTED))
-                .isEqualTo("true");
     }
 
     @Test

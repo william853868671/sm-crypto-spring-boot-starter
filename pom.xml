@@ -7,7 +7,7 @@
     <!-- 基本信息 -->
     <groupId>io.github.william853868671</groupId>
     <artifactId>sm-crypto-spring-boot-starter</artifactId>
-    <version>1.0.2</version>
+    <version>2.0.0</version>
     <packaging>jar</packaging>
 
     <name>SM Crypto Spring Boot Starter</name>

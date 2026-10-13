@@ -1,6 +1,5 @@
 package com.github.william853868671.smcrypto.it;
 
-import com.github.william853868671.smcrypto.spring.EncryptedResponse;
 import com.github.william853868671.smcrypto.spring.SmCFBEncrypt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,12 +20,6 @@ public class AdviceTestController {
     @SmCFBEncrypt
     @GetMapping("/enc")
     public Map<String, Object> enc() {
-        return sample();
-    }
-
-    @EncryptedResponse
-    @GetMapping("/legacy")
-    public Map<String, Object> legacy() {
         return sample();
     }
 

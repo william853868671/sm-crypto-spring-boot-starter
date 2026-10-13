@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Bean;
  * <p>引用方只需引入本 starter 并在 {@code application.yml} 里配置 {@code smcfb.client-public-key}，
  * {@code @RestController} 的返回体就会<b>默认自动加密</b>成 {@code {code,data,key}}，并附带响应头
  * {@code X-SmCFBEncrypt: true} 提示前端已加密；个别接口用 {@link SmCFBEncrypt}{@code (false)}
- * （或兼容注解 {@link EncryptedResponse}{@code (false)}）即可显式走明文。</p>
+ * （用 {@link SmCFBEncrypt}{@code (false)}）即可显式走明文。</p>
  *
  * <ul>
  *   <li>默认启用（{@code smcfb.enabled=true}）；设为 {@code false} 则整套加密逻辑不生效，
@@ -48,8 +48,9 @@ public class SmCryptoAutoConfiguration {
 
     @Bean
     @ConditionalOnProperty(prefix = "smcfb", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public SecureResponseAdvice secureResponseAdvice(SecureResponseService secureResponseService) {
-        return new SecureResponseAdvice(secureResponseService);
+    public SecureResponseAdvice secureResponseAdvice(SecureResponseService secureResponseService,
+                                                     SmcfbProperties properties) {
+        return new SecureResponseAdvice(secureResponseService, properties);
     }
 
     @Bean

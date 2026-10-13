@@ -2,7 +2,6 @@ package com.github.william853868671.smcrypto.samples;
 
 import com.github.william853868671.smcrypto.crypto.SecureResponse;
 import com.github.william853868671.smcrypto.crypto.SmCryptoUtil;
-import com.github.william853868671.smcrypto.spring.EncryptedResponse;
 import com.github.william853868671.smcrypto.spring.SecureResponseService;
 import com.github.william853868671.smcrypto.spring.SmCFBEncrypt;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,7 +22,6 @@ import java.util.Map;
  *   <li>{@code /api/plain/order/{id}} —— 同样的数据，不加密，用于对比抓包效果</li>
  *   <li>{@code /api/health} —— 加密组件健康检查</li>
  *   <li>{@code /api/order/{id}/manual} —— 手动调用加密服务（不用注解的写法）</li>
- *   <li>{@code /api/order/{id}/legacy} —— 历史注解 {@link EncryptedResponse}，效果与 {@link SmCFBEncrypt} 一致</li>
  * </ul>
  */
 @RestController
@@ -40,13 +38,6 @@ public class DemoController {
     @SmCFBEncrypt
     @GetMapping("/order/{id}")
     public Map<String, Object> detail(@PathVariable Long id) {
-        return mockOrder(id);
-    }
-
-    /** 历史注解写法，行为与 {@link SmCFBEncrypt} 完全一致（兼容保留）。 */
-    @EncryptedResponse
-    @GetMapping("/order/{id}/legacy")
-    public Map<String, Object> legacyDetail(@PathVariable Long id) {
         return mockOrder(id);
     }
 
