@@ -59,24 +59,34 @@ PKG="com/github/william853868671/smcrypto"
 compile() {
   rm -rf "$CLASSES"
   mkdir -p "$CLASSES"
-  find src/main/java src/test/java -name '*.java' > build/sources.txt
-  echo ">>> javac 编译 $(wc -l < build/sources.txt | tr -d ' ') 个源文件"
+  find src/main/java -name '*.java' > build/sources.txt
+  echo ">>> javac 编译 $(wc -l < build/sources.txt | tr -d ' ') 个源文件（仅 main，不含 JUnit 测试）"
   javac -encoding UTF-8 -nowarn -cp "$CP" -d "$CLASSES" @"build/sources.txt"
   echo ">>> 编译通过"
 }
 
+ensure_compiled() {
+  if [ ! -f "$CLASSES/$PKG/tool/GenKeyPairTool.class" ]; then
+    echo ">>> 未检测到编译产物，先编译"
+    compile
+  fi
+}
+
 run_self_test() {
+  ensure_compiled
   echo
   java -cp "$CLASSES:$CP" com.github.william853868671.smcrypto.SecurePayloadSelfTest build/selftest
 }
 
 gen_keys() {
+  ensure_compiled
   java -cp "$CLASSES:$CP" com.github.william853868671.smcrypto.tool.GenKeyPairTool --out ./keys
 }
 
 # 跨语言互通验证：Java(Hutool) 产物 → JS(sm-crypto) 解密，再反向。
 # 需要 sm-crypto，若未安装：npm i sm-crypto，然后 export NODE_PATH=<node_modules 路径>
 interop() {
+  ensure_compiled
   local node_bin="${NODE_BIN:-node}"
   echo ">>> [1/2] 小程序端 sm-crypto 解密后端返回体"
   if ! NODE_PATH="${NODE_PATH:-}" "$node_bin" tools/interop/verify-interop.js build/selftest; then
