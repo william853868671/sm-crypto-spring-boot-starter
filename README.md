@@ -35,7 +35,7 @@
 
 ## 二、特性
 
-- 基于 **Hutool 5.8 + BouncyCastle**，Spring Boot 3.x 自动装配；在接口上标 `@SmCFBEncrypt`（或兼容的 `@EncryptedResponse`）一键启用。
+- 基于 **Hutool 5.8 + BouncyCastle**，Spring Boot 3.x 自动装配；`@RestController` 返回体**默认即加密**，无需任何注解；个别接口需要明文时用 `@SmCFBEncrypt(false)`（或兼容的 `@EncryptedResponse(false)`）显式关闭。
 - 被加密的响应会附带响应头 **`X-SmCFBEncrypt: true`**，前端据此判断是否需要走解密流程（未加密时不带该头）。
 - 返回的密文格式与前端 `sm-crypto` **完全对齐**（SM2 去 `04` 前缀 = C1C3C2；SM4 用 CBC + 随机 IV），
   前端无需做任何格式转换。
@@ -54,14 +54,14 @@
 <dependency>
     <groupId>io.github.william853868671</groupId>
     <artifactId>sm-crypto-spring-boot-starter</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
 </dependency>
 ```
 
 **Gradle (Kotlin DSL)**
 
 ```kotlin
-implementation("io.github.william853868671:sm-crypto-spring-boot-starter:1.0.1")
+implementation("io.github.william853868671:sm-crypto-spring-boot-starter:1.0.2")
 ```
 
 ### 2. 生成密钥对
@@ -99,19 +99,43 @@ smcfb:
 - `request-decrypt-enabled: false` 时后端不再解密请求（响应加密仍按 `enabled` 进行），前端可发明文请求。
 - 只配 `client-public-key` 也能启动：未配 `server-private-key` 时响应加密照常；只有当前端真的发来 `X-SmCFBEncrypt: true` 的请求时才会运行期报错提示补配私钥。
 
-### 4. 给接口加密
+### 4. 返回体加密（默认即加密）
+
+本 starter 对 `@RestController` 的返回体**默认全部加密**，大多数接口什么都不用标就能拿到加密返回体。
+因此 `@SmCFBEncrypt` 注解的主要用途是「**显式关闭**」个别必须明文的接口（健康检查、回调、第三方对接等）。
 
 ```java
-@SmCFBEncrypt               // 加这一行就够了：返回体自动加密 + 响应头 X-SmCFBEncrypt=true
-@GetMapping("/api/order/{id}")
-public OrderVO detail(@PathVariable Long id) {
-    return orderService.find(id);
+@RestController
+public class OrderController {
+
+    @GetMapping("/api/order/{id}")        // 默认加密：什么都不用标
+    public OrderVO detail(@PathVariable Long id) {
+        return orderService.find(id);
+    }
+
+    @SmCFBEncrypt(false)                  // 显式关闭：明文返回，不带 X-SmCFBEncrypt 头
+    @GetMapping("/api/callback")
+    public Object callback() {
+        return rawPayload;
+    }
 }
 ```
 
-- 注解可标在**方法**或 **Controller 类**上（标在类上则类内所有接口都加密）。
+加密规则：
+
+- **不加注解 / `@SmCFBEncrypt(true)`（默认）/ `@EncryptedResponse(true)`** → 都按加密返回，响应头带 `X-SmCFBEncrypt: true`。
+- **`@SmCFBEncrypt(false)` / `@EncryptedResponse(false)`** → 不加密，按 Spring 默认方式原样序列化返回。
+
+优先级与位置：
+
+- 注解可标在**方法**或 **Controller 类**上（标在类上则类内所有接口沿用该值）。
+- **方法级注解优先于类级**：类上标了 `@SmCFBEncrypt(false)`、某方法又标 `@SmCFBEncrypt(true)`，以方法级为准。
+
+其它说明：
+
 - 历史注解 `@EncryptedResponse` **仍然兼容**，行为完全一致，可混用；新代码推荐用 `@SmCFBEncrypt`。
-- 加密后响应头会带 `X-SmCFBEncrypt: true`，未加密（如 `enabled: false`）则不带，前端可据此分支。
+- `enabled: false`（见上节配置）时整套加密不生效，所有接口都明文返回，注解被忽略，方便联调对比。
+- 加密后响应头会带 `X-SmCFBEncrypt: true`，前端可据此分支解密。
 
 不想要注解，也可以手动包：
 

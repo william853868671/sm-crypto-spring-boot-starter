@@ -79,8 +79,25 @@ class SmCFBEncryptAdviceTest {
     }
 
     @Test
-    void noAnnotation_noHeader_noEncryption() throws Exception {
+    void noAnnotation_defaultEncrypts() throws Exception {
+        // 没加注解也按默认加密返回（新逻辑：默认即加密）
         MvcResult result = mockMvc.perform(get("/t/plain"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        assertThat(result.getResponse().getHeader(SecureResponseAdvice.HEADER_ENCRYPTED))
+                .isEqualTo("true");
+
+        JsonNode node = objectMapper.readTree(result.getResponse().getContentAsString());
+        assertThat(node.get("code").asInt()).isEqualTo(200);
+        assertThat(node.get("data").asText()).isNotEqualTo("{\"k\":\"v\"}");
+        assertThat(node.get("key").asText()).isNotBlank();
+    }
+
+    @Test
+    void explicitFalse_skipsEncryption() throws Exception {
+        // @SmCFBEncrypt(false) 显式关闭：明文返回，不带加密头
+        MvcResult result = mockMvc.perform(get("/t/disabled"))
                 .andExpect(status().isOk())
                 .andReturn();
 

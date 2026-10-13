@@ -9,10 +9,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
 /**
- * 把标了 {@link SmCFBEncrypt} / {@link EncryptedResponse} 的接口返回值自动替换为加密返回体。
+ * 默认对 {@code @RestController} 的返回体加密，除非接口显式标注 {@link SmCFBEncrypt}{@code (false)}
+ * 或 {@link EncryptedResponse}{@code (false)}。
  *
- * <p>Controller 里照常返回业务对象，加密这件事对业务代码透明 —— 不用每个方法手写
- * {@code secureResponseService.success(...)}，也就不会有人漏写。</p>
+ * <p>加密是默认行为（不加注解即加密），因此本 Advice 对绝大多数接口都生效；
+ * 业务代码照常返回业务对象，加密对业务透明 —— 不用每个方法手写
+ * {@code secureResponseService.success(...)}，也就不会有人漏写。
+ * 只有明确「必须明文」的接口（健康检查、回调、第三方对接等）才需要标 {@code (false)} 关掉。</p>
  *
  * <p>只要响应体被加密（{@code key} 非空），都会同时写入响应头
  * {@code X-SmCFBEncrypt: true}，前端据此判断是否需要走解密流程。</p>
@@ -31,18 +34,38 @@ public class SecureResponseAdvice implements ResponseBodyAdvice<Object> {
 
     @Override
     public boolean supports(MethodParameter returnType, Class converterType) {
-        return hasEncryptAnnotation(returnType);
+        // 默认加密：不加注解、或注解值为 true（默认值）都走加密；
+        // 只有显式标了 value=false 的接口才跳过。方法级注解优先于类级注解。
+        return !isEncryptDisabled(returnType);
     }
 
-    private boolean hasEncryptAnnotation(MethodParameter returnType) {
-        if (returnType.hasMethodAnnotation(SmCFBEncrypt.class)
-                || returnType.hasMethodAnnotation(EncryptedResponse.class)) {
-            return true;
+    /**
+     * 判断某个接口是否被显式关闭加密。
+     *
+     * <p>优先级：方法上的 {@link SmCFBEncrypt} / {@link EncryptedResponse} 优先于类上同款注解；
+     * 只要方法级出现了其中一个（无论 true/false），就以方法级为准；方法级没有时再看法级。</p>
+     */
+    private boolean isEncryptDisabled(MethodParameter returnType) {
+        SmCFBEncrypt methodSm = returnType.getMethodAnnotation(SmCFBEncrypt.class);
+        if (methodSm != null) {
+            return !methodSm.value();
+        }
+        EncryptedResponse methodLegacy = returnType.getMethodAnnotation(EncryptedResponse.class);
+        if (methodLegacy != null) {
+            return !methodLegacy.value();
         }
         Class<?> declaring = returnType.getContainingClass();
-        return declaring != null
-                && (declaring.isAnnotationPresent(SmCFBEncrypt.class)
-                    || declaring.isAnnotationPresent(EncryptedResponse.class));
+        if (declaring != null) {
+            SmCFBEncrypt classSm = declaring.getAnnotation(SmCFBEncrypt.class);
+            if (classSm != null) {
+                return !classSm.value();
+            }
+            EncryptedResponse classLegacy = declaring.getAnnotation(EncryptedResponse.class);
+            if (classLegacy != null) {
+                return !classLegacy.value();
+            }
+        }
+        return false;
     }
 
     @Override

@@ -30,11 +30,21 @@ public class AdviceTestController {
         return sample();
     }
 
+    // 不加任何注解：验证「默认即加密」行为（新逻辑）
     @GetMapping("/plain")
     public Map<String, Object> plain() {
         return sample();
     }
 
+    // 显式关闭加密：验证 @SmCFBEncrypt(false) 走明文返回
+    @SmCFBEncrypt(false)
+    @GetMapping("/disabled")
+    public Map<String, Object> disabled() {
+        return sample();
+    }
+
+    // 回显接口：用于验证「入站请求解密」，必须明文返回，故显式关闭响应加密
+    @SmCFBEncrypt(false)
     @PostMapping("/echo")
     public Map<String, Object> echo(@RequestBody Map<String, Object> body) {
         return body;

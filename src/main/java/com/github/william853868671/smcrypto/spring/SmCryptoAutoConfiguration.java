@@ -13,8 +13,9 @@ import org.springframework.context.annotation.Bean;
  * SM 国密返回体加密的自动配置。
  *
  * <p>引用方只需引入本 starter 并在 {@code application.yml} 里配置 {@code smcfb.client-public-key}，
- * 标了 {@link SmCFBEncrypt}（或兼容注解 {@link EncryptedResponse}）的接口返回体就会被自动加密成
- * {@code {code,data,key}}，并附带响应头 {@code X-SmCFBEncrypt: true} 提示前端已加密。</p>
+ * {@code @RestController} 的返回体就会<b>默认自动加密</b>成 {@code {code,data,key}}，并附带响应头
+ * {@code X-SmCFBEncrypt: true} 提示前端已加密；个别接口用 {@link SmCFBEncrypt}{@code (false)}
+ * （或兼容注解 {@link EncryptedResponse}{@code (false)}）即可显式走明文。</p>
  *
  * <ul>
  *   <li>默认启用（{@code smcfb.enabled=true}）；设为 {@code false} 则整套加密逻辑不生效，

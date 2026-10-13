@@ -7,18 +7,19 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 标记「返回体需要加密」的接口（历史注解，现已兼容 {@link SmCFBEncrypt}）。
+ * 控制接口「返回体是否加密」的注解（历史注解，现已兼容 {@link SmCFBEncrypt}）。
  *
- * <p>可以标在方法上，也可以标在 Controller 类上（类上标了则类内所有接口都加密）。
+ * <p>可以标在方法上，也可以标在 Controller 类上（方法级优先于类级）。
+ * 本 starter 对返回体<b>默认即加密</b>，因此本注解最常用于显式关闭：{@code @EncryptedResponse(false)}。
  * 新代码建议优先使用 {@link SmCFBEncrypt}；两者行为完全一致，可混用。</p>
  *
  * <pre>
  * &#64;RestController
  * public class OrderController {
  *
- *     &#64;EncryptedResponse
- *     &#64;GetMapping("/api/order/{id}")
- *     public OrderVO detail(&#64;PathVariable Long id) { ... }
+ *     &#64;EncryptedResponse(false)
+ *     &#64;GetMapping("/api/callback")
+ *     public Object callback() { ... }
  * }
  * </pre>
  *
@@ -28,4 +29,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface EncryptedResponse {
+    /** 是否加密返回体，默认 {@code true}（与 {@link SmCFBEncrypt} 语义一致）。 */
+    boolean value() default true;
 }
