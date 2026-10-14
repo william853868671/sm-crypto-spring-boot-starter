@@ -54,14 +54,14 @@
 <dependency>
     <groupId>io.github.william853868671</groupId>
     <artifactId>sm-crypto-spring-boot-starter</artifactId>
-    <version>2.0.0</version>
+    <version>2.0.1</version>
 </dependency>
 ```
 
 **Gradle (Kotlin DSL)**
 
 ```kotlin
-implementation("io.github.william853868671:sm-crypto-spring-boot-starter:2.0.0")
+implementation("io.github.william853868671:sm-crypto-spring-boot-starter:2.0.1")
 ```
 
 ### 2. 生成密钥对

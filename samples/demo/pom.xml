@@ -13,7 +13,7 @@
 
     <groupId>io.github.william853868671</groupId>
     <artifactId>sm-crypto-spring-boot-starter-sample</artifactId>
-    <version>2.0.0</version>
+    <version>2.0.1</version>
     <name>SM Crypto Starter Sample</name>
     <description>可运行的演示应用：使用 sm-crypto-spring-boot-starter 加密返回体</description>
 
@@ -26,7 +26,7 @@
         <dependency>
             <groupId>io.github.william853868671</groupId>
             <artifactId>sm-crypto-spring-boot-starter</artifactId>
-            <version>2.0.0</version>
+            <version>2.0.1</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

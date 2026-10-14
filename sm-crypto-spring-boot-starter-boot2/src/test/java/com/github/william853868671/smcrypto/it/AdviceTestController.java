@@ -36,6 +36,12 @@ public class AdviceTestController {
         return sample();
     }
 
+    // 返回 String：验证 StringHttpMessageConverter 场景下不再 ClassCastException
+    @GetMapping("/str")
+    public String str() {
+        return "plain text";
+    }
+
     // 回显接口：用于验证「入站请求解密」，必须明文返回，故显式关闭响应加密
     @SmCFBEncrypt(false)
     @PostMapping("/echo")

@@ -95,6 +95,21 @@ class SmCFBEncryptAdviceTest {
     }
 
     @Test
+    void stringReturn_endToEnd_encryptsToJson() throws Exception {
+        // 控制器返回 String：旧代码会因 StringHttpMessageConverter 选中 SecureResponse 对象而抛 ClassCastException，
+        // 修复后无论 Jackson 还是 String 转换器都应返回合法的 {"code","data","key"} JSON。
+        MvcResult result = mockMvc.perform(get("/t/str"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        assertThat(result.getResponse().getHeader(SecureResponseAdvice.HEADER_ENCRYPTED)).isEqualTo("true");
+        JsonNode node = objectMapper.readTree(result.getResponse().getContentAsString());
+        assertThat(node.get("code").asInt()).isEqualTo(200);
+        assertThat(node.get("data").asText()).isNotBlank();
+        assertThat(node.get("key").asText()).isNotBlank();
+    }
+
+    @Test
     void decryptRequest_decryptsEncryptedBody() throws Exception {
         // 前端视角：用【后端公钥】加密请求体，并对齐后端密文格式 {data, key}
         String plainJson = "{\"k\":\"v\"}";

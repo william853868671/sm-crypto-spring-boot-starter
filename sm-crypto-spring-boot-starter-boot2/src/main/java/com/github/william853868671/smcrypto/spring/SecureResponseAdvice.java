@@ -3,6 +3,7 @@ package com.github.william853868671.smcrypto.spring;
 import com.github.william853868671.smcrypto.crypto.SecureResponse;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -88,21 +89,29 @@ public class SecureResponseAdvice implements ResponseBodyAdvice<Object> {
                                   ServerHttpRequest request,
                                   ServerHttpResponse response) {
         // 业务代码自己调了 service，已经是加密返回体：不再重复加密，但需标记 header
+        SecureResponse sr;
         if (body instanceof SecureResponse) {
-            markIfEncrypted(response, (SecureResponse) body);
-            return body;
+            sr = (SecureResponse) body;
+        } else {
+            try {
+                sr = secureResponseService.success(body);
+            } catch (RuntimeException e) {
+                // 加密失败必须让调用方看见明确原因，而不是一个空 500
+                sr = secureResponseService.buildOnError(
+                        SecureResponseService.CODE_CRYPTO_ERROR, "返回体加密失败：" + e.getMessage());
+            }
         }
-        try {
-            SecureResponse sr = secureResponseService.success(body);
-            markIfEncrypted(response, sr);
-            return sr;
-        } catch (RuntimeException e) {
-            // 加密失败必须让调用方看见明确原因，而不是一个空 500
-            SecureResponse sr = secureResponseService.buildOnError(
-                    SecureResponseService.CODE_CRYPTO_ERROR, "返回体加密失败：" + e.getMessage());
-            markIfEncrypted(response, sr);
-            return sr;
+        markIfEncrypted(response, sr);
+
+        // 关键：当接口原始返回类型是 String 时，Spring 在 beforeBodyWrite 之前就已选中
+        // StringHttpMessageConverter（它只能写 String）。若直接把 body 换成 SecureResponse 对象，
+        // 该转换器写出的瞬间会在 addDefaultHeaders 处抛 ClassCastException。
+        // 因此这里把加密结构序列化成 JSON 字符串再返回，并显式声明 content-type 为 application/json。
+        if (StringHttpMessageConverter.class.isAssignableFrom(selectedConverterType)) {
+            response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+            return secureResponseService.toJsonString(sr);
         }
+        return sr;
     }
 
     /**

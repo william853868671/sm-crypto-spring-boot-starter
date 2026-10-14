@@ -111,4 +111,22 @@ public class SecureResponseService {
             throw new IllegalStateException("返回体序列化失败：" + e.getOriginalMessage(), e);
         }
     }
+
+    /**
+     * 把已组装好的加密返回体序列化为 JSON 字符串。
+     *
+     * <p>用于「控制器原始返回类型是 {@code String}、Spring 因此选中了
+     * {@link org.springframework.http.converter.StringHttpMessageConverter}」的场景：
+     * 该转换器只能写出 {@code String}，无法写出 {@link SecureResponse} 对象
+     * （否则会在 {@code StringHttpMessageConverter.addDefaultHeaders} 处抛出
+     * {@code ClassCastException}）。Advice 里先把加密结构序列化成 JSON 字符串再返回，
+     * 并显式声明 content-type 为 {@code application/json}。</p>
+     */
+    public String toJsonString(SecureResponse sr) {
+        try {
+            return objectMapper.writeValueAsString(sr);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("加密返回体序列化失败：" + e.getOriginalMessage(), e);
+        }
+    }
 }

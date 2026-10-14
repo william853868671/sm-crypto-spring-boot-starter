@@ -26,14 +26,14 @@
 <dependency>
     <groupId>io.github.william853868671</groupId>
     <artifactId>sm-crypto-spring-boot-starter-boot2</artifactId>
-    <version>2.0.0</version>
+    <version>2.0.1</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```groovy
-implementation("io.github.william853868671:sm-crypto-spring-boot-starter-boot2:2.0.0")
+implementation("io.github.william853868671:sm-crypto-spring-boot-starter-boot2:2.0.1")
 ```
 
 ## 用法（与主线完全一致）
