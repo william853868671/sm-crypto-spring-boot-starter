@@ -9,6 +9,10 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
+import org.springframework.util.AntPathMatcher;
+
+import java.util.List;
+
 /**
  * 默认对 {@code @RestController} 的返回体加密，除非接口显式标注 {@link SmCFBEncrypt}{@code (false)}。
  *
@@ -28,6 +32,7 @@ public class SecureResponseAdvice implements ResponseBodyAdvice<Object> {
 
     private final SecureResponseService secureResponseService;
     private final SmcfbProperties properties;
+    private final AntPathMatcher antPathMatcher = new AntPathMatcher();
 
     public SecureResponseAdvice(SecureResponseService secureResponseService, SmcfbProperties properties) {
         this.secureResponseService = secureResponseService;
@@ -88,6 +93,10 @@ public class SecureResponseAdvice implements ResponseBodyAdvice<Object> {
                                   Class selectedConverterType,
                                   ServerHttpRequest request,
                                   ServerHttpResponse response) {
+        // 排除路径：命中 smcfb.exclude-paths 的接口直接原样返回，不加密、不写标记头
+        if (isExcluded(request)) {
+            return body;
+        }
         // 业务代码自己调了 service，已经是加密返回体：不再重复加密，但需标记 header
         SecureResponse sr;
         if (body instanceof SecureResponse) {
@@ -122,5 +131,22 @@ public class SecureResponseAdvice implements ResponseBodyAdvice<Object> {
         if (sr.getKey() != null) {
             response.getHeaders().set(HEADER_ENCRYPTED, "true");
         }
+    }
+
+    /**
+     * 判断请求路径是否命中 {@code smcfb.exclude-paths} 配置（Ant 风格匹配）。命中则整条响应跳过加密。
+     */
+    private boolean isExcluded(ServerHttpRequest request) {
+        List<String> patterns = properties.getExcludePaths();
+        if (patterns == null || patterns.isEmpty() || request == null) {
+            return false;
+        }
+        String path = request.getURI().getPath();
+        for (String pattern : patterns) {
+            if (pattern != null && antPathMatcher.match(pattern, path)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -3,6 +3,9 @@ package com.github.william853868671.smcrypto.spring;
 import com.github.william853868671.smcrypto.crypto.SmCryptoUtil;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * 接口加密配置。
  *
@@ -30,6 +33,19 @@ public class SmcfbProperties {
      * 才加密，没标的接口一律明文返回。适合「仅个别接口需要加密、绝大多数接口保持明文」的场景。</p>
      */
     private boolean requireAnnotation = false;
+
+    /**
+     * 命中这些路径（Ant 风格）的接口<b>不加密</b>，原样明文返回，且不写 {@code X-SmCFBEncrypt} 头。
+     *
+     * <p>对应配置 {@code smcfb.exclude-paths}（List）。典型用途：Swagger/Knife4j 文档接口
+     * （{@code /v3/api-docs/**}、{@code /swagger-ui/**}）、{@code /error}、Actuator（{@code /actuator/**}）、
+     * 健康检查等「必须由浏览器/工具直连、不能加密」的端点。</p>
+     *
+     * <p>命中即整体跳过加密，比给每个端点逐个标 {@code @SmCFBEncrypt(false)} 更省事，
+     * 也比 {@code require-annotation=true} 更轻——后者会改变「默认即加密」的整体模型。
+     * 路径按请求 URI 的 path 部分做 Ant 匹配（{@code **} 匹配多级）。默认空，即不排除任何接口。</p>
+     */
+    private List<String> excludePaths = new ArrayList<>();
 
     /**
      * 前端公钥（130 位 hex，04 开头）。
@@ -74,6 +90,14 @@ public class SmcfbProperties {
 
     public void setRequireAnnotation(boolean requireAnnotation) {
         this.requireAnnotation = requireAnnotation;
+    }
+
+    public List<String> getExcludePaths() {
+        return excludePaths;
+    }
+
+    public void setExcludePaths(List<String> excludePaths) {
+        this.excludePaths = excludePaths;
     }
 
     public String getClientPublicKey() {

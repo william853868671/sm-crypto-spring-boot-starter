@@ -26,14 +26,14 @@
 <dependency>
     <groupId>io.github.william853868671</groupId>
     <artifactId>sm-crypto-spring-boot-starter-boot2</artifactId>
-    <version>2.0.1</version>
+    <version>2.0.2</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```groovy
-implementation("io.github.william853868671:sm-crypto-spring-boot-starter-boot2:2.0.1")
+implementation("io.github.william853868671:sm-crypto-spring-boot-starter-boot2:2.0.2")
 ```
 
 ## 用法（与主线完全一致）
@@ -44,13 +44,18 @@ implementation("io.github.william853868671:sm-crypto-spring-boot-starter-boot2:2
    ```
 2. 在 `application.yml` 配置（默认返回体即加密）：
    ```yaml
-   smcfb:
-     enabled: true
-     client-public-key: "04ff223d..."     # 前端 SM2 公钥，用于加密响应
-     server-private-key: "d4e5f6..."      # 后端 SM2 私钥，用于解密请求
-     request-decrypt-enabled: true
-     fail-fast: true
-   ```
+smcfb:
+  enabled: true
+  client-public-key: "04ff223d..."     # 前端 SM2 公钥，用于加密响应
+  server-private-key: "d4e5f6..."      # 后端 SM2 私钥，用于解密请求
+  request-decrypt-enabled: true
+  fail-fast: true
+  exclude-paths:                       # 命中这些 Ant 路径的接口不加密、原样返回（可选）
+    - /v3/api-docs/**
+    - /swagger-ui/**
+    - /error
+    - /actuator/**
+```
 3. 个别接口需要明文时显式关闭：
    ```java
    @SmCFBEncrypt(false)
@@ -58,6 +63,7 @@ implementation("io.github.william853868671:sm-crypto-spring-boot-starter-boot2:2
    public Map<String,Object> health() { ... }
    ```
    - `smcfb.require-annotation: true` 可切到「只有标了 `@SmCFBEncrypt` 才加密」的 opt-in 模式。
+   - `smcfb.exclude-paths`（Ant 路径 List）可让 Swagger/Knife4j（`/v3/api-docs/**`、`/swagger-ui/**`）、`/error`、Actuator 等端点整体跳过加密——框架内部端点没法用注解标注，只能靠路径排除。
 
 其余说明（加密机制、跨语言互通、双向解密、发布）见主线 starter 的 README。
 

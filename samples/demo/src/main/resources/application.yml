@@ -27,6 +27,13 @@ smcfb:
   # 公钥格式非法时是否直接拒绝启动（推荐 true，避免带病上线）
   fail-fast: true
 
+  # 想排除某些路径不加密（如 Swagger/Knife4j 文档、健康检查、Actuator），用 Ant 路径：
+  # exclude-paths:
+  #   - /v3/api-docs/**
+  #   - /swagger-ui/**
+  #   - /error
+  #   - /actuator/**
+
 logging:
   level:
     com.github.william853868671.smcrypto: debug

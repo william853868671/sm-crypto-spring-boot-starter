@@ -54,14 +54,14 @@
 <dependency>
     <groupId>io.github.william853868671</groupId>
     <artifactId>sm-crypto-spring-boot-starter</artifactId>
-    <version>2.0.1</version>
+    <version>2.0.2</version>
 </dependency>
 ```
 
 **Gradle (Kotlin DSL)**
 
 ```kotlin
-implementation("io.github.william853868671:sm-crypto-spring-boot-starter:2.0.1")
+implementation("io.github.william853868671:sm-crypto-spring-boot-starter:2.0.2")
 ```
 
 ### 2. 生成密钥对
@@ -93,12 +93,18 @@ smcfb:
   server-private-key: "d4e5f6..."    # 后端 SM2 私钥（64 位 hex），用于解密请求
   request-decrypt-enabled: true       # 是否解密前端加密的请求体（默认 true）
   require-annotation: false           # 是否必须显式标 @SmCFBEncrypt 才加密（默认 false）
+  exclude-paths:                      # 命中这些 Ant 路径的接口不加密、原样返回（可选）
+    - /v3/api-docs/**
+    - /swagger-ui/**
+    - /error
+    - /actuator/**
   fail-fast: true                     # 密钥格式不对直接拒绝启动
 ```
 
 - `enabled: false` 时响应照常返回明文，方便联调对比。
 - `request-decrypt-enabled: false` 时后端不再解密请求（响应加密仍按 `enabled` 进行），前端可发明文请求。
 - `require-annotation: true` 时切换为「显式标注才加密」模式：只有标了 `@SmCFBEncrypt`（且值不为 `false`）的接口才加密，没标的接口一律明文。默认 `false`（返回体默认即加密）。
+- `exclude-paths`（List，Ant 风格路径，如 `/v3/api-docs/**`、`/swagger-ui/**`、`/error`、`/actuator/**`）：命中的接口**整体跳过加密**，原样明文返回且不带 `X-SmCFBEncrypt` 头。典型用途是 Swagger/Knife4j 文档、健康检查、Actuator 这类「必须直连、不能加密」的端点。比逐个标 `@SmCFBEncrypt(false)` 省事，也比 `require-annotation=true` 轻（后者会把「默认即加密」整体反转）。路径按请求 URI 的 path 部分做 Ant 匹配（`**` 匹配多级）。
 - 只配 `client-public-key` 也能启动：未配 `server-private-key` 时响应加密照常；只有当前端真的发来 `X-SmCFBEncrypt: true` 的请求时才会运行期报错提示补配私钥。
 
 ### 4. 返回体加密（默认即加密）
@@ -138,6 +144,16 @@ public class OrderController {
 - **`false`（默认）— 默认即加密**：不加注解也加密；`@SmCFBEncrypt(false)` 才关掉。适合「绝大多数接口都要加密」。
 - **`true` — 显式标注才加密**：只有标了 `@SmCFBEncrypt` 的接口才加密，没标的接口一律明文。适合「仅个别接口需要加密」。
   此模式下 `@SmCFBEncrypt` 注解的主要用途变成「开启」而非「关闭」。
+
+**排除整类路径（如 Swagger）：** 如果想让某几类端点（Swagger 文档、健康检查、Actuator）不加密、其余保持默认加密，优先用 `smcfb.exclude-paths` 按路径排除（见上方配置），而不是给每个业务接口加注解。Swagger/Knife4j 是框架内部端点，没法用 `@SmCFBEncrypt` 标注，只能靠路径排除。例如：
+
+```yaml
+smcfb:
+  exclude-paths:
+    - /v3/api-docs/**
+    - /swagger-ui/**
+    - /doc.html
+```
 
 其它说明：
 
