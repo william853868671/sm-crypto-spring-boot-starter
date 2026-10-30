@@ -9,6 +9,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.Collections;
 
 /**
@@ -41,10 +42,18 @@ public class SecureResponseService {
 
     private final SmcfbProperties properties;
     private final ObjectMapper objectMapper;
+    private final PayloadSerializer payloadSerializer;
 
     public SecureResponseService(SmcfbProperties properties, ObjectMapper objectMapper) {
+        this(properties, objectMapper, new JacksonPayloadSerializer(objectMapper));
+    }
+
+    public SecureResponseService(SmcfbProperties properties, ObjectMapper objectMapper,
+                                 PayloadSerializer payloadSerializer) {
         this.properties = properties;
         this.objectMapper = objectMapper;
+        this.payloadSerializer = payloadSerializer != null
+                ? payloadSerializer : new JacksonPayloadSerializer(objectMapper);
     }
 
     /**
@@ -106,9 +115,9 @@ public class SecureResponseService {
             return payload.toString();
         }
         try {
-            return objectMapper.writeValueAsString(payload);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("返回体序列化失败：" + e.getOriginalMessage(), e);
+            return payloadSerializer.serialize(payload);
+        } catch (IOException e) {
+            throw new IllegalStateException("返回体序列化失败：" + e.getMessage(), e);
         }
     }
 

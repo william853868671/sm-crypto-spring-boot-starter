@@ -7,7 +7,7 @@
     <!-- 基本信息 -->
     <groupId>io.github.william853868671</groupId>
     <artifactId>sm-crypto-spring-boot-starter</artifactId>
-    <version>2.0.2</version>
+    <version>2.0.3</version>
     <packaging>jar</packaging>
 
     <name>SM Crypto Spring Boot Starter</name>
@@ -226,12 +226,48 @@
         </plugins>
     </build>
 
-    <!-- GitHub Packages 作为备选分发渠道 -->
-    <distributionManagement>
-        <repository>
-            <id>github</id>
-            <name>GitHubPackages</name>
-            <url>https://maven.pkg.github.com/william853868671/sm-crypto-spring-boot-starter</url>
-        </repository>
-    </distributionManagement>
+    <!--
+        发布到私有 Nexus 仓库（maven-7138）。
+        激活方式：mvn -Pnexus clean deploy
+        该 profile 会：
+          1. 将 distributionManagement 指向私服 maven-releases / maven-snapshots；
+          2. 关闭 central-publishing 插件（否则它会劫持 deploy 阶段去发 Maven Central）；
+          3. 关闭 GPG 签名（私服无需签名）。
+        认证信息在 ~/.m2/settings.xml 的 <server><id>maven-7138</id> 中。
+    -->
+    <profiles>
+        <profile>
+            <id>nexus</id>
+            <distributionManagement>
+                <repository>
+                    <id>maven-7138</id>
+                    <name>Bulade Nexus Releases</name>
+                    <url>http://172.0.71.38:8081/repository/maven-releases</url>
+                </repository>
+                <snapshotRepository>
+                    <id>maven-7138</id>
+                    <name>Bulade Nexus Snapshots</name>
+                    <url>http://172.0.71.38:8081/repository/maven-snapshots</url>
+                </snapshotRepository>
+            </distributionManagement>
+            <build>
+                <plugins>
+                    <!-- 私服发布时禁用 Maven Central Portal 插件 -->
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <extensions>false</extensions>
+                    </plugin>
+                    <!-- 私服发布时禁用 GPG 签名 -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

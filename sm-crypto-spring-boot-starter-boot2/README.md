@@ -26,14 +26,14 @@
 <dependency>
     <groupId>io.github.william853868671</groupId>
     <artifactId>sm-crypto-spring-boot-starter-boot2</artifactId>
-    <version>2.0.2</version>
+    <version>2.0.3</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```groovy
-implementation("io.github.william853868671:sm-crypto-spring-boot-starter-boot2:2.0.2")
+implementation("io.github.william853868671:sm-crypto-spring-boot-starter-boot2:2.0.3")
 ```
 
 ## 用法（与主线完全一致）
@@ -64,6 +64,16 @@ smcfb:
    ```
    - `smcfb.require-annotation: true` 可切到「只有标了 `@SmCFBEncrypt` 才加密」的 opt-in 模式。
    - `smcfb.exclude-paths`（Ant 路径 List）可让 Swagger/Knife4j（`/v3/api-docs/**`、`/swagger-ui/**`）、`/error`、Actuator 等端点整体跳过加密——框架内部端点没法用注解标注，只能靠路径排除。
+   - **业务体序列化可插拔**：放进信封 `data` 字段的业务对象由 `PayloadSerializer` 序列化（默认 `JacksonPayloadSerializer`，用项目注入的 Jackson `ObjectMapper`，枚举默认序列化为枚举名）。若项目用 fastjson2 且枚举按 `code` 输出，普通接口与加密接口枚举表现不一致时，注册一个 `PayloadSerializer` Bean 即可让加密体内业务对象改用同一套规则：
+
+     ```java
+     @Bean
+     public PayloadSerializer payloadSerializer() {
+         return obj -> com.alibaba.fastjson2.JSON.toJSONString(obj);
+     }
+     ```
+
+     该接口只影响 `data` 内的业务对象，不影响信封 `{code,data,key}` 本身。
 
 其余说明（加密机制、跨语言互通、双向解密、发布）见主线 starter 的 README。
 

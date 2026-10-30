@@ -54,14 +54,14 @@
 <dependency>
     <groupId>io.github.william853868671</groupId>
     <artifactId>sm-crypto-spring-boot-starter</artifactId>
-    <version>2.0.2</version>
+    <version>2.0.3</version>
 </dependency>
 ```
 
 **Gradle (Kotlin DSL)**
 
 ```kotlin
-implementation("io.github.william853868671:sm-crypto-spring-boot-starter:2.0.2")
+implementation("io.github.william853868671:sm-crypto-spring-boot-starter:2.0.3")
 ```
 
 ### 2. 生成密钥对
@@ -105,6 +105,17 @@ smcfb:
 - `request-decrypt-enabled: false` 时后端不再解密请求（响应加密仍按 `enabled` 进行），前端可发明文请求。
 - `require-annotation: true` 时切换为「显式标注才加密」模式：只有标了 `@SmCFBEncrypt`（且值不为 `false`）的接口才加密，没标的接口一律明文。默认 `false`（返回体默认即加密）。
 - `exclude-paths`（List，Ant 风格路径，如 `/v3/api-docs/**`、`/swagger-ui/**`、`/error`、`/actuator/**`）：命中的接口**整体跳过加密**，原样明文返回且不带 `X-SmCFBEncrypt` 头。典型用途是 Swagger/Knife4j 文档、健康检查、Actuator 这类「必须直连、不能加密」的端点。比逐个标 `@SmCFBEncrypt(false)` 省事，也比 `require-annotation=true` 轻（后者会把「默认即加密」整体反转）。路径按请求 URI 的 path 部分做 Ant 匹配（`**` 匹配多级）。
+- **业务体序列化可插拔（PayloadSerializer）**：放进加密信封 `data` 字段的业务对象，由 `PayloadSerializer` 序列化，默认是 `JacksonPayloadSerializer`（用项目注入的 Jackson `ObjectMapper`，枚举默认序列化为枚举名）。若你的项目整体用 fastjson2 且枚举按 `code` 输出，普通接口与加密接口的枚举表现不一致时，只需注册一个 `PayloadSerializer` 的 Bean，库会自动采用你的实现，让加密体内业务对象与项目其它接口用同一套序列化规则：
+
+  ```java
+  @Bean
+  public PayloadSerializer payloadSerializer() {
+      // 复用你项目里现成的 fastjson2 配置（含枚举→code 规则）
+      return obj -> com.alibaba.fastjson2.JSON.toJSONString(obj);
+  }
+  ```
+
+  该接口只影响 `data` 内的业务对象，不影响信封 `{code,data,key}` 本身。
 - 只配 `client-public-key` 也能启动：未配 `server-private-key` 时响应加密照常；只有当前端真的发来 `X-SmCFBEncrypt: true` 的请求时才会运行期报错提示补配私钥。
 
 ### 4. 返回体加密（默认即加密）

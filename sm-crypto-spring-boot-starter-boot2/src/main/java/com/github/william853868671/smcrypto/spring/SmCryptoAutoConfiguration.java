@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -32,8 +33,18 @@ public class SmCryptoAutoConfiguration {
     private static final Logger log = LoggerFactory.getLogger(SmCryptoAutoConfiguration.class);
 
     @Bean
+    @ConditionalOnMissingBean
+    public PayloadSerializer payloadSerializer(ObjectMapper objectMapper) {
+        // 默认用项目注入的 Jackson ObjectMapper 序列化业务对象；
+        // 引用方若想改用 fastjson2（让加密体内枚举也按 code 输出），注册一个同名 Bean 即可覆盖
+        return new JacksonPayloadSerializer(objectMapper);
+    }
+
+    @Bean
     @ConditionalOnProperty(prefix = "smcfb", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public SecureResponseService secureResponseService(SmcfbProperties properties, ObjectMapper objectMapper) {
+    public SecureResponseService secureResponseService(SmcfbProperties properties,
+                                                      ObjectMapper objectMapper,
+                                                      PayloadSerializer payloadSerializer) {
         // 启动期自检：配置合法性 + 国密算法可用性（宁可启动失败，也不要带病上线）
         properties.validate();
         if (!SmCryptoUtil.selfCheck()) {
@@ -44,7 +55,7 @@ public class SmCryptoAutoConfiguration {
             log.info("接口加密已启用，前端公钥 {}...{}（{} 位）",
                     pk.substring(0, 10), pk.substring(pk.length() - 8), pk.length());
         }
-        return new SecureResponseService(properties, objectMapper);
+        return new SecureResponseService(properties, objectMapper, payloadSerializer);
     }
 
     @Bean
